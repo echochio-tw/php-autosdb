@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CEchochio - Autos Database 25315d7e</title>
-
+<title>CEchochio - Autos Database 80de80d9</title>
 <!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 
@@ -14,18 +13,32 @@
 <div class="container">
 <h1>Welcome to Autos Database</h1>
 <p>
-<a href="login.php">Please Log In</a>
+<?php
+    session_start();
+    if ( isset($_SESSION["success"]) ) {
+        echo('<p style="color:green">'.$_SESSION["success"]."</p>\n");
+        unset($_SESSION["success"]);
+    }  
+ 
+    // Check if we are logged in!
+    if ( ! isset($_SESSION["account"]) ) { ?>
+       <a href="login.php">Please Log In</a>
+    <?php } else { ?>
+       <p>Please <a href="logout.php">Log Out</a> when you are done.</p>
+    <?php } ?>
 </p>
 <p>
 Attempt to go to 
-<a href="autos.php">autos.php</a> without logging in - it should fail with an error message.
-<p>
-<a href="http://c1596b35f82e.ngrok.io/autosdb/" target="_blank">Specification for this Application</a>
+<a href="view.php">view.php</a> without logging in - it should fail with an error message.
 </p>
 <p>
-<b>Note:</b> Your implementation should retain data across multiple
-logout/login sessions.  This sample implementation clears all its
-data on logout - which you should not do in your implementation.
+Attempt to go to 
+<a href="add.php">add.php</a> without logging in - it should fail with an error message.
+</p>
+<p>
+<a href="https://www.wa4e.com/assn/autosess/" target="_blank">Specification for this Application</a>
 </p>
 </div>
 </body>
+
+

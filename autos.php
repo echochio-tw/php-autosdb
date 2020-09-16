@@ -14,7 +14,7 @@ if (!isset($_GET['name'])) {
 }
 else{
   $name =  $_GET['name'];
-  if ( isset($_POST['make']) && isset($_POST['year']) && isset($_POST['mileage'])) {
+  if (isset($_POST['make']) && isset($_POST['year']) && isset($_POST['mileage'])) {
     $mk =  htmlentities($_POST['make']);
     $year =  htmlentities($_POST['year']);
     $mileage = htmlentities($_POST['mileage']);
