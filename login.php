@@ -27,7 +27,7 @@ if (isset($_SESSION['email']) && isset($_SESSION['pass'])){
   } elseif ($_SESSION['pass'] == "") {
     $_SESSION["error"] = 'Email and password are required';
   } elseif ((strpos($_SESSION['email'], '@') == false)) {
-    $_SESSION["error"] = 'who must have an at-sign (@)';
+    $_SESSION["error"] = 'account without an at-sign (@)';
   } else {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE password = :pw");
     $stmt->execute(array(':pw' => $_SESSION['pass']));
