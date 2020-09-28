@@ -1,4 +1,4 @@
-<title>Echochio Severance's Resume Registry 9ada6f78</title>
+<title>Echochio Severance's Resume Registry d66f0a77</title>
 
 <!-- head.php -->
 <link rel="stylesheet" 

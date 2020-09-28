@@ -87,6 +87,11 @@ if (isset($_SESSION['first_name']) && isset($_SESSION['last_name']) && isset($_S
   }
 }
 
+
+$stmt = $pdo->prepare("SELECT * FROM Profile where profile_id = :xyz ");
+
+
+
 if (isset($_GET['profile_id'])){
   $_SESSION['profile_id'] = $_GET['profile_id'];
   $stmt = $pdo->prepare("SELECT * FROM Profile where profile_id = :xyz");
