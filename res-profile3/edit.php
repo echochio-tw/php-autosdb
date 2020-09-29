@@ -1,6 +1,5 @@
 <?php
 require_once 'pdo.php';
-// require_once 'util.php';
 require_once "validate.php";
 
 session_start();
@@ -46,7 +45,7 @@ if (isset($_POST['save'])) {
         $_SESSION['summary'] = htmlentities($_POST['summary']);
         $_SESSION['save'] = 'Save';
         error_log("edit post ".$_SESSION['email']);
-        header( "Location: edit.php", true, 303 );
+        header("Location: edit.php?profile_id=".$_SESSION['profile_id'], true, 303);
         return;
       }
     }
@@ -77,17 +76,19 @@ if ( isset($_SESSION['save'])) {
     return;
 }
 
-$stmt = $pdo->prepare('SELECT * FROM Profile WHERE profile_id =:prof AND user_id =:uid');
-$stmt->execute(array(':prof' => $_SESSION['profile_id'], ':uid' => $_SESSION['user_id']));
-$profile = $stmt->fetch(PDO::FETCH_ASSOC);
-if ($profile == false){
-    $_SESSION['error']='<p style="color: red;">Could not load profile</p>';
-    header( "Location: index.php", true, 303 );
-    return;
-}
+if (isset($_SESSION['profile_id'])) {
+    $stmt = $pdo->prepare('SELECT * FROM Profile WHERE profile_id =:prof AND user_id =:uid');
+    $stmt->execute(array(':prof' => $_SESSION['profile_id'], ':uid' => $_SESSION['user_id']));
+    $profile = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($profile == false){
+        $_SESSION['error']='<p style="color: red;">Could not load profile</p>';
+        header( "Location: index.php", true, 303 );
+        return;
+    }
 
-$positions = loadPos($pdo, $_SESSION['profile_id']);
-$schools = loadEdu($pdo, $_SESSION['profile_id']);
+    $positions = loadPos($pdo, $_SESSION['profile_id']);
+    $schools = loadEdu($pdo, $_SESSION['profile_id']);
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -100,7 +101,7 @@ $schools = loadEdu($pdo, $_SESSION['profile_id']);
 echo "<h1>Editing Profile for ".$_SESSION["user_name"]."</h1>";
 flashMessage();
 ?>
-<form method="post" action="edit.php">
+<form method="post">
 <input type="hidden" name="profile_id"
 value="<?= htmlentities($_SESSION['profile_id']); ?>"
 />
@@ -133,10 +134,10 @@ if ( count($schools) > 0 ){
     foreach($schools as $school){
         $countEdu++;
         echo('<div id="edu"'.$countEdu.'">');
-        echo '<p>Year: <input type="text" name="edu_year'.$countEdu.
+        echo '<p>Year: <input type="text" name="eduyear'.$countEdu.
         '" value="'.$school['year'].
         '"/> <input type="button" value=\'-\' onclick="$(\'#edu'.$countEdu.
-        '\').remove();return false;"></p><p>School: <input type="text" size="80" name="edu_school"'
+        '\').remove();return false;"></p><p>School: <input type="text" size="80" name="eduschool"'
         .$countEdu.
         '" class="school" value="'
         .htmlentities($school['name']).
@@ -228,9 +229,9 @@ $(document).ready(function(){
 <!-- HTML with Substitution hot spots  16:59 -->
 <script id="edu-template" type="text">
   <div id="edu@COUNT@">
-    <p>Year: <input type="text" name="edu_year@COUNT@" value="" />
+    <p>Year: <input type="text" name="eduyear@COUNT@" value="" />
     <input type="button" value="-" onclick="$('#edu@COUNT@').remove();return false;"><br>
-    <p>School: <input type="text" size="80" name="edu_school@COUNT@" class="school" value="" />
+    <p>School: <input type="text" size="80" name="eduschool@COUNT@" class="school" value="" />
     </p>
   </div>
 </script>
