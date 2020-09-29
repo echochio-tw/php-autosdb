@@ -1,100 +1,131 @@
 <?php
 require_once "pdo.php";
 session_start();
+
+require_once "validatePos.php";
+
+if (!isset($_SESSION['id_email'])) {
+  die("ACCESS DENIED");
+}
+
   if (isset($_POST['cancel'])) {
     if ($_POST['cancel'] == "Cancel") {
-      $_SESSION['cancel'] = 'view';
-      error_log("to view in post");
+      $_SESSION['cancel'] = 'index';
+      error_log("to index in post");
       header( "Location: {$_SERVER['REQUEST_URI']}", true, 303 );
+      return;
     }
+  }
+
+  if (isset($_SESSION['cancel'])) {
+    unset($_SESSION["cancel"]);
+    unset($_SESSION["error"]);
+    error_log("to index in session");
+    header( "Location: index.php", true, 303 );
+    return;
   }
 
   if (isset($_POST['add'])) {
     if ($_POST['add'] == "Add") {
       error_log("in post Add");
-      if (isset($_POST['make']) && isset($_POST['year']) && isset($_POST['mileage'])){
-        unset($_SESSION["make"]);
-        unset($_SESSION["year"]);
-        unset($_SESSION["mileage"]);
-        $_SESSION['make'] = htmlentities($_POST['make']);
-        $_SESSION['year'] = htmlentities($_POST['year']);
-        $_SESSION['mileage'] = htmlentities($_POST['mileage']);
-        error_log("in post ".$_SESSION['make']);
-        error_log("in post ".$_SESSION['year']);
-        error_log("in post ".$_SESSION['mileage']);
-        header( "Location: {$_SERVER['REQUEST_URI']}", true, 303 );
+      if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline'])  && isset($_POST['summary']) ){
+        $a = validatePos();
+        if (is_string($a)){
+          $_SESSION['error'] = $a;
+          return; 
+        }
+        $_SESSION['first_name'] = htmlentities($_POST['first_name']);
+        $_SESSION['last_name'] = htmlentities($_POST['last_name']);
+        $_SESSION['email'] = htmlentities($_POST['email']);
+        $_SESSION['headline'] = htmlentities($_POST['headline']);
+        $_SESSION['summary'] = htmlentities($_POST['summary']);
+        error_log("add post ".$_SESSION['email']);
+        header( "Location: add.php", true, 303 );
+        return;
       }
     }
   }
 
-if (isset($_SESSION['cancel'])) {
-  unset($_SESSION["cancel"]);
+if (isset($_SESSION['first_name']) && isset($_SESSION['last_name']) && isset($_SESSION['email']) 
+          && isset($_SESSION['headline']) && isset($_SESSION['summary'])) {
+  $ui = $_SESSION['user_id'];
+  $fn = $_SESSION['first_name'];
+  $ln = $_SESSION['last_name'];
+  $em = $_SESSION['email'];
+  $he = $_SESSION['headline'];
+  $su = $_SESSION['summary'];
+  unset($_SESSION['first_name']);
+  unset($_SESSION["last_name"]);
+  unset($_SESSION["email"]);
+  unset($_SESSION["headline"]);
+  unset($_SESSION["summary"]);
   unset($_SESSION["error"]);
-  error_log("to view in session");
-  header( "Location: view.php", true, 303 );
-}
-
-if (!isset($_SESSION['email'])) {
-  die("Not logged in");
-}
-
-if (isset($_SESSION['make']) && isset($_SESSION['year']) && isset($_SESSION['mileage'])){
-  $mk =  $_SESSION['make'];
-  $year =  $_SESSION['year'];
-  $mileage = $_SESSION['mileage'];
-  error_log("in session ".$_SESSION['make']);
-  error_log("in session ".$_SESSION['year']);
-  error_log("in session ".$_SESSION['mileage']);
-  unset($_SESSION["make"]);
-  unset($_SESSION["year"]);
-  unset($_SESSION["mileage"]);
-  if ($mk=='') {
-    $_SESSION["error"] ='<p style="color: red;">Make is required</p>';
-  } elseif (!is_numeric($year)) {
-    $_SESSION["error"] = '<p style="color: red;">Mileage and year must be numeric</p>';
-  } elseif (!is_numeric($mileage)) {
-    $_SESSION["error"] = '<p style="color: red;">Mileage and year must be numeric</p>';
-  } else{
-    $stmt = $pdo->prepare('INSERT INTO autos  (make, year, mileage) VALUES ( :mk, :yr, :mi)');
-    $stmt->execute(array(':mk' => $mk,':yr' => $year,':mi' => $mileage));
-    $_SESSION["error"] = '<p style="color: green;">Record inserted</p>';
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: view.php');
+  if ( ($fn=='') || ($ln=='') || ($em=='') || ($he=='') || ($su=='') ) {      
+      $_SESSION["error"] ='<p style="color: red;">All fields are required</p>';
+    } elseif  (strpos($em, '@') == false) {
+      $_SESSION["error"] = '<p style="color: red;">Email address must contain @</p>';
+    } else{
+    $stmt = $pdo->prepare('INSERT INTO Profile (`user_id`, first_name, last_name, email, headline, summary) VALUES ( :ui, :fn, :ln, :em, :he, :su)');
+    $stmt->execute(array(':ui' => $ui, ':fn' => $fn, ':ln' => $ln, ':em' => $em, ':he' => $he, ':su' => $su));
+    $profile_id = $pdo->lastInsertId();
+    for($i=1; $i<=9; $i++) {
+      if ( ! isset($_SESSION['year'.$i]) ) continue;
+      if ( ! isset($_SESSION['desc'.$i]) ) continue;
+      $stmt = $pdo->prepare('INSERT INTO Position
+            (profile_id, rank, year, description)
+            VALUES ( :pid, :rank, :year, :desc)');
+      $stmt->execute(array(
+        ':pid' => $profile_id,
+        ':rank' => $i,
+        ':year' => $_SESSION['year'.$i],
+        ':desc' => $_SESSION['desc'.$i])
+      );
+      unset($_SESSION['year'.$i]);
+      unset($_SESSION['desc'.$i]);
+    }  
+    $_SESSION["error"] = '<p style="color: green;">Record added</p>';
+    header( "Location: index.php", true, 303 );
+    return;
   }
-  error_log("in session".$_SESSION["error"]);
 }
 
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-<title>Echochio's Automobile Tracker 80de80d9</title>
-
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-
-<!-- Optional theme -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+<?  require_once "head-link.php"; ?>
 </head>
 <body>
 <div class="container">
-<h1>Tracking Autos for <?php echo $_SESSION['email']?></h1>
 <?php
+echo "<h1>Adding Profile for ".$_SESSION["user_name"]."</h1>";
+// echo $_SESSION["id_email"];
+echo '</a></h1>';
 if (isset($_SESSION["error"]) ) {
   error_log("in html ".$_SESSION["error"]);
   echo($_SESSION["error"]);
-  //unset($_SESSION["error"]);
 }
 ?>
 <form method="post">
-<p>Make:
-<input type="text" name="make" size="60"/></p>
-<p>Year:
-<input type="text" name="year"/></p>
-<p>Mileage:
-<input type="text" name="mileage"/></p>
+<p>First Name:
+<input type="text" name="first_name" size="60"/></p>
+<p>Last Name:
+<input type="text" name="last_name" size="60"/></p>
+<p>Email:
+<input type="text" name="email" size="30"/></p>
+<p>Headline:<br/>
+<input type="text" name="headline" size="80"/></p>
+<p>Summary:<br/>
+<textarea name="summary" rows="8" cols="80"></textarea>
+<p>
+Position: <input type="submit" id="addPos" value="+">
+<div id="position_fields">
+</div>
+</p>
+<p>
 <input type="submit" name="add" value="Add">
 <input type="submit" name="cancel" value="Cancel">
+</p>
 </form>
-
-</html>
+<?php require_once "javascript-add.php"; ?>
+</body>

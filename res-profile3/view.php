@@ -37,6 +37,18 @@ if ( $row === false ) {
 <p>Headline:<br/> <?php echo $row['headline']; ?> </p>
 <p>Summary:<br/><?php echo $row['summary']; ?> </p>
 <?
+// SELECT year,name FROM Education JOIN Institution ON Education.institution_id = Institution.institution_id WHERE profile_id = 18 ORDER BY rank
+$stmt = $pdo->prepare("SELECT year,name FROM Education JOIN Institution ON Education.institution_id = Institution.institution_id WHERE profile_id = :prof ORDER BY rank");
+$stmt->execute(array(":prof" => $_GET['profile_id']));
+$rows = $stmt->fetchall(PDO::FETCH_ASSOC);
+if ( $row != false ) {
+  echo '<p>Education</p><ul>';
+  foreach($rows as $row){
+    echo '<li>'.$row['year'].':'.$row['name'].'</li>';
+  }
+  echo '</ul>';
+}
+
 $stmt = $pdo->prepare("SELECT * FROM Position where profile_id = :xyz");
 $stmt->execute(array(":xyz" => $_GET['profile_id']));
 $rows = $stmt->fetchall(PDO::FETCH_ASSOC);

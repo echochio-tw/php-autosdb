@@ -48,7 +48,7 @@ if (isset($_SESSION['login'])){
 <!DOCTYPE html>
 <html>
 <head>
-<title>Echochio Login Page 9ada6f78</title>
+<title>Echochio Login Page 9c2aef8b</title>
 <? require_once "javascript-login.php"; ?>
 <?  require_once "head-link.php"; ?>
 </head>

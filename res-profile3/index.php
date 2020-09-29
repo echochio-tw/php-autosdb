@@ -1,6 +1,7 @@
 <?php
     session_start();
     require_once "pdo.php";
+    if( isset($_SESSION['profile_id'])) unset($_SESSION['profile_id']);
 ?>
 <!DOCTYPE html>
 <html>

@@ -1,6 +1,7 @@
 <?php
 require_once 'pdo.php';
-require_once 'util.php';
+// require_once 'util.php';
+require_once "validate.php";
 
 session_start();
 
@@ -10,54 +11,83 @@ if (! isset($_SESSION['user_id'])){
 }
 
 if ( isset($_POST['cancel'])){
-    header('Location: index.php');
+    header( "Location: index.php", true, 303 );
     return;
 }
 
-if(! isset($_REQUEST['profile_id'])){
-    $_SESSION['error'] ="Missing profile_id";
-    header['Location: index.php'];
+if (isset($_REQUEST['profile_id'])) $_SESSION['profile_id'] = $_REQUEST['profile_id'];
+
+if  (! isset($_SESSION['profile_id'])) {
+    $_SESSION['error'] ='<p style="color: red;">Missing profile_id</p>';
+    header( "Location: index.php", true, 303 );
+    return;
+}
+
+if (isset($_POST['save'])) {
+    if ($_POST['save'] == "Save") {
+      error_log("in post Save");
+      if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline'])  && isset($_POST['summary']) ){
+        $a = validatePos();
+        if (is_string($a)){
+          $_SESSION['error'] = $a;
+          header("Location: edit.php?profile_id=".$_SESSION["profile_id"]);
+          return; 
+        }
+        $b = validateEdu();
+        if (is_string($b)){
+          $_SESSION['error'] = $b;
+          header("Location: edit.php?profile_id=".$_SESSION["profile_id"]);
+          return; 
+        }
+        $_SESSION['first_name'] = htmlentities($_POST['first_name']);
+        $_SESSION['last_name'] = htmlentities($_POST['last_name']);
+        $_SESSION['email'] = htmlentities($_POST['email']);
+        $_SESSION['headline'] = htmlentities($_POST['headline']);
+        $_SESSION['summary'] = htmlentities($_POST['summary']);
+        $_SESSION['save'] = 'Save';
+        error_log("edit post ".$_SESSION['email']);
+        header( "Location: edit.php", true, 303 );
+        return;
+      }
+    }
+  }
+
+
+
+if ( isset($_SESSION['save'])) {
+    error_log("edit session ".$_SESSION['save']);
+    unset($_SESSION['save']);
+    $stmt = $pdo->prepare('UPDATE Profile SET first_name=:fn, last_name=:ln, email=:em, headline=:he, summary=:su WHERE profile_id=:pid and user_id=:uid');
+    $stmt->execute(array(':pid' => $_SESSION['profile_id'], ':uid' => $_SESSION['user_id'], ':fn' => $_SESSION['first_name'], ':ln' => $_SESSION['last_name'], ':em' =>  $_SESSION['email'], ':he' => $_SESSION['headline'], ':su' => $_SESSION['summary']));
+    $stmt = $pdo->prepare('DELETE FROM Position WHERE profile_id=:pid');
+    $stmt->execute(array(':pid' => $_SESSION['profile_id']));
+    inserPositions($pdo, $_SESSION['profile_id']);
+    $stmt = $pdo->prepare('DELETE FROM Education WHERE profile_id=:pid');
+    $stmt->execute(array(':pid' => $_SESSION['profile_id']));
+    insertEducations($pdo, $_SESSION['profile_id']);
+    $_SESSION['success']='Profile updated';
+    unset($_SESSION['first_name']);
+    unset($_SESSION["last_name"]);
+    unset($_SESSION["email"]);
+    unset($_SESSION["headline"]);
+    unset($_SESSION["summary"]);
+    unset($_SESSION["error"]);
+    unset($_SESSION['profile_id']);
+    header( "Location: index.php", true, 303 );
     return;
 }
 
 $stmt = $pdo->prepare('SELECT * FROM Profile WHERE profile_id =:prof AND user_id =:uid');
-$stmt->execute(array(':prof' => $_REQUEST['profile_id'], ':uid' => $_SESSION['user_id']));
+$stmt->execute(array(':prof' => $_SESSION['profile_id'], ':uid' => $_SESSION['user_id']));
 $profile = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($profile == false){
-    $_SESSION['error']="Could not load profile";
-    header('Location: index.php');
+    $_SESSION['error']='<p style="color: red;">Could not load profile</p>';
+    header( "Location: index.php", true, 303 );
     return;
 }
-if ( isset($POST['first_nema']) && isset($_POST['last_name']) &&
-    isset($POST['email']) && isset($_POST['headline']) &&
-    isset($POST['summary'])){
-    $msg = validateProfile();
-    if ( is_string($msg)){
-        $_SERVER['error'] = $msg;
-        header("Location: edit.php?profile_id=".$_REQUEST["profile_id"])
-        return;
-    }
-    $msg = validatePos();
-    if ( is_string($msg)){
-        $_SERVER['error'] = $msg;
-        header("Location: edit.php?profile_id=".$_REQUEST["profile_id"])
-        return;
-    }
-    $stmt = $pdo->prepare('UPDATE Profile SET first_name=:fn, last_name=:ln, email=:em, headline=:he, summary=:su WHERE profile_id=:pid and user_id=:uid');
-    $stmt->execute(array(':pid' => $_REQUEST['profile_id'], ':uid' => $_SESSION['user_id'], ':fn' => $_POST['first_name'], ':ln' => $_POST['last_name'], ':em' =>  $_POST['email'], ':he' => $_POST['headline'], ':su' => $_POST['summary']));
-    $stmt = $pdo->prepare('DELETE FROM Position WHERE profile_id=:pid');
-    $stmt->execute(array(':pid' ==> $_REQUEST['profile_id']));
-    insertPositions($pdo, $_REQUEST['profile_id']);
-    $stmt = $pdo->prepare('DELETE FROM Education WHERE profile_id=:pid');
-    $stmt->execute(array(':pid' ==> $_REQUEST['profile_id']));
-    insertEducations($pdo, $_REQUEST['profile_id']);
-    $_SESSION['success']='Profile updated';
-    header("Location: index.php");
-    return;
-}
-$positions = loadPos($pdo, $_REQUEST['profile_id']);
-$schools = loadEdu($pdo, $_REQUEST['profile_id']);
-?>
+
+$positions = loadPos($pdo, $_SESSION['profile_id']);
+$schools = loadEdu($pdo, $_SESSION['profile_id']);
 ?>
 <!DOCTYPE html>
 <html>
@@ -72,27 +102,27 @@ flashMessage();
 ?>
 <form method="post" action="edit.php">
 <input type="hidden" name="profile_id"
-value="<?= htmlentities($_REQUEST['profile_id']); ?>"
+value="<?= htmlentities($_SESSION['profile_id']); ?>"
 />
 <p>First Name:
 <input type="text" name="first_name" size="60" 
-value="<?= htmlentities($_REQUEST['first_name']); ?>"
+value="<?= htmlentities($profile['first_name']); ?>"
 /></p>
 <p>Last Name:
 <input type="text" name="last_name" size="60" 
-value="<?= htmlentities($_REQUEST['last_name']); ?>"
+value="<?= htmlentities($profile['last_name']); ?>"
 /></p>
 <p>Email:
 <input type="text" name="email" size="30" 
-value="<?= htmlentities($_REQUEST['email']); ?>"
+value="<?= htmlentities($profile['email']); ?>"
 /></p>
 <p>Headline:<br/>
 <input type="text" name="headline" size="80"
-value="<?= htmlentities($_REQUEST['headline']); ?>"
+value="<?= htmlentities($profile['headline']); ?>"
 /></p>
 <p>Summary:<br/>
 <textarea name="summary" rows="8" cols="80">
-<?= htmlentities($_REQUEST['headline']); ?>
+<?= htmlentities($profile['headline']); ?>
 </textarea>
 <p>
 <?php
@@ -102,12 +132,15 @@ echo('<div id="edu_fields">'."\n");
 if ( count($schools) > 0 ){
     foreach($schools as $school){
         $countEdu++;
-        echo('<div id="edu".$countEdu.'">');
-        echo 
-'<p>Year: <input type="text" name="edu_year'.$countEdu.'" value="'.$school['year'].'" />
-<input type="button" value='-' onclick="$(\'#edu'.$countEdu.'\').remove();return false;"></p>
-<p>School: <input type="text" size="80" name="edu_school".$countEdu.'" class="school"
-value="'.htmlentities($school['name']).'" />';
+        echo('<div id="edu"'.$countEdu.'">');
+        echo '<p>Year: <input type="text" name="edu_year'.$countEdu.
+        '" value="'.$school['year'].
+        '"/> <input type="button" value=\'-\' onclick="$(\'#edu'.$countEdu.
+        '\').remove();return false;"></p><p>School: <input type="text" size="80" name="edu_school"'
+        .$countEdu.
+        '" class="school" value="'
+        .htmlentities($school['name']).
+        '" />';
         echo "\n</div>\n";
     }
 }
@@ -119,9 +152,13 @@ if ( count($positions) > 0 ){
     foreach($positions as $position){
         $countPos++;
         echo('<div class="position" id ="position'.$countPos.'">');
-        echo
-'<p>Year: <input type="text" name="year'.$countPos.'" value='.htmlentities($position['year']).'" />
-<input type="button" value="-" onclick="$(\'#position'.$countPos.'\').remove();return false;"><br>'';
+        echo '<p>Year: <input type="text" name="year'
+        .$countPos.
+        '" value='
+        .htmlentities($position['year']).
+        ' /><input type="button" value="-" onclick="$(\'#position'
+        .$countPos.
+        '\').remove();return false;"><br>';
 
         echo '<textarea name="desc'.$countPos.'" rows="8" cols="80">'."\n";
         echo htmlentities($position['description'])."\n";
